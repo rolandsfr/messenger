@@ -1,29 +1,12 @@
 import { call, put, takeEvery, all } from "redux-saga/effects";
 import firebase from "../firebase";
-import { FRIENDS_LIST_FETCHED } from "../redux/friendsReducer";
 import { CREATE_NEW_DM, RETURN_DMS } from "../redux/userInstanceReducer";
 import "firebase/auth";
 import shortid from "shortid";
 import checkForPfp from "../utils/checkForPfp";
 
 const db = firebase.firestore();
-const friendsRef = db.collection("friends");
 const auth = firebase.auth();
-
-async function fetchFromDB() {
-  let friends = [];
-  const friendsRef = await db.collection("friends").get();
-  const snapshot = friendsRef.forEach((doc) => {
-    friends.push({ data: doc.data(), id: doc.id });
-  });
-
-  return friends;
-}
-
-function* fetchFriends(action) {
-  const friends = yield call(fetchFromDB);
-  yield put(FRIENDS_LIST_FETCHED(friends));
-}
 
 async function fetchUser(email) {
   let creds;
@@ -79,8 +62,6 @@ async function fetchUser(email) {
 
   return { ...creds, uid: dmUserId };
 }
-
-let dms = [];
 
 function* createDMRequest(action) {
   const user = yield call(fetchUser, action.payload);
