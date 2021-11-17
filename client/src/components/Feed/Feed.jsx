@@ -371,28 +371,6 @@ const Blob = styled.div`
   }
 `;
 
-const FirebaseOffline = styled.div`
-  width: 100vw;
-  height: 100vh;
-  background: #fafafa;
-  position: fixed;
-  left: 0;
-  top: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 10000;
-  font-family: "Roboto";
-
-  div.warning {
-    color: #999;
-    max-width: 250px;
-    line-height: 1.5;
-    font-size: 1.5rem;
-    text-align: center;
-  }
-`;
-
 const AutoComplete = styled.div`
   display: flex;
   width: 100%;
@@ -469,7 +447,6 @@ function Feed() {
   const [initials, setInitials] = useState(null);
   const [opponentPfp, setOpponentPfp] = useState();
   const [loading, setLoading] = useState(true);
-  const [isOffline, setIsOffline] = useState(false);
   const [search, setSearch] = useState("");
   const [hits, setHits] = useState([]);
   const selfEmail = useRef();
@@ -548,20 +525,6 @@ function Feed() {
 
   useEffect(async () => {
     checkForDesktop();
-
-    db.collection("dummy")
-      .limit(1)
-      .onSnapshot(
-        {
-          includeMetadataChanges: true,
-        },
-        (snap) => {
-          if (snap.metadata.fromCache) {
-            if (everythingFetched) return;
-            setIsOffline(true);
-          }
-        }
-      );
 
     let selfInstance = await db
       .collection("users")
@@ -850,478 +813,460 @@ function Feed() {
   return (
     <div>
       <Preloader loading={loading} />
-      {isOffline ? (
-        <FirebaseOffline>
-          <div className="warning">
-            Could not reach the database, check your internet connection and try
-            refreshing the page again.
-          </div>
-        </FirebaseOffline>
-      ) : (
-        <Wrapper
-          style={
-            loading || isOffline ? { height: "100vh", overflow: "hidden" } : {}
-          }
-        >
-          <FeedHeader dms={dms} />
-          <Container className="main-container">
-            {everythingFetched && dms.length ? (
-              <DMsWrapper>
-                {dms.map((dm) => {
-                  return (
-                    <Link
-                      key={dm.email}
-                      style={
-                        friendUid.current === dm.uid
-                          ? {
-                              textDecoration: "none",
-                              marginTop: "4em",
-                              background: "#eee",
-                            }
-                          : {
-                              textDecoration: "none",
-                              marginTop: "4em",
-                            }
-                      }
-                      to={isDesktop ? "/feed" : `feed/${dm.uid}`}
-                      onClick={async () => {
-                        if (friendUid.current === dm.uid) return;
-
-                        if (!isDesktop) return;
-
-                        if (friendUid.current) {
-                          socket.emit("end", {
-                            roomId: roomName.current,
-                            profileUid: auth.currentUser.uid,
-                            opponentUuid: friendUid.current,
-                          });
-                        }
-
-                        initDm(dm.uid, roomName.current);
-                      }}
-                    >
-                      <DMBlock>
-                        <Pfp
-                          style={
-                            dm.img
-                              ? {
-                                  backgroundImage: `url(${dm.img})`,
-                                  backgroundSize: "cover",
-                                  backgroundRepeat: "no-repeat",
-                                  backgroundPosition: "center",
-                                }
-                              : { backgroundColor: dm.color }
+      <Wrapper style={loading ? { height: "100vh", overflow: "hidden" } : {}}>
+        <FeedHeader dms={dms} />
+        <Container className="main-container">
+          {everythingFetched && dms.length ? (
+            <DMsWrapper>
+              {dms.map((dm) => {
+                return (
+                  <Link
+                    key={dm.email}
+                    style={
+                      friendUid.current === dm.uid
+                        ? {
+                            textDecoration: "none",
+                            marginTop: "4em",
+                            background: "#eee",
                           }
-                        >
-                          {!dm.img ? (
-                            <div>
-                              <span>{dm.name.split(" ")[0][0]}</span>
-                              <span>{dm.name.split(" ")[1][0]}</span>
-                            </div>
+                        : {
+                            textDecoration: "none",
+                            marginTop: "4em",
+                          }
+                    }
+                    to={isDesktop ? "/feed" : `feed/${dm.uid}`}
+                    onClick={async () => {
+                      if (friendUid.current === dm.uid) return;
+
+                      if (!isDesktop) return;
+
+                      if (friendUid.current) {
+                        socket.emit("end", {
+                          roomId: roomName.current,
+                          profileUid: auth.currentUser.uid,
+                          opponentUuid: friendUid.current,
+                        });
+                      }
+
+                      initDm(dm.uid, roomName.current);
+                    }}
+                  >
+                    <DMBlock>
+                      <Pfp
+                        style={
+                          dm.img
+                            ? {
+                                backgroundImage: `url(${dm.img})`,
+                                backgroundSize: "cover",
+                                backgroundRepeat: "no-repeat",
+                                backgroundPosition: "center",
+                              }
+                            : { backgroundColor: dm.color }
+                        }
+                      >
+                        {!dm.img ? (
+                          <div>
+                            <span>{dm.name.split(" ")[0][0]}</span>
+                            <span>{dm.name.split(" ")[1][0]}</span>
+                          </div>
+                        ) : (
+                          ""
+                        )}
+                        {dm.unread > 0 ? (
+                          <UnreadNotif>{dm.unread}</UnreadNotif>
+                        ) : (
+                          ""
+                        )}
+                      </Pfp>
+                      <DMDescription>
+                        <Top>
+                          <DMName>{dm.name}</DMName>
+                          {dm.time ? (
+                            <LatestMsgTime>{formatDate(dm.time)}</LatestMsgTime>
                           ) : (
                             ""
                           )}
-                          {dm.unread > 0 ? (
-                            <UnreadNotif>{dm.unread}</UnreadNotif>
-                          ) : (
-                            ""
-                          )}
-                        </Pfp>
-                        <DMDescription>
-                          <Top>
-                            <DMName>{dm.name}</DMName>
-                            {dm.time ? (
-                              <LatestMsgTime>
-                                {formatDate(dm.time)}
-                              </LatestMsgTime>
+                        </Top>
+                        <LatestMsg>
+                          {dm.lastMessage
+                            ? !latestMsg
+                              ? dm.lastMessage.length >= 30
+                                ? dm.lastMessage.slice(0, 30) + "..."
+                                : dm.lastMessage
+                              : latestMsg.length >= 30
+                              ? latestMsg.slice(0, 30) + "..."
+                              : latestMsg
+                            : "Start this conversation now!"}
+                        </LatestMsg>
+                      </DMDescription>
+                    </DMBlock>
+                  </Link>
+                );
+              })}
+            </DMsWrapper>
+          ) : (
+            ""
+          )}
+
+          {everythingFetched && dms.length ? (
+            isDesktop ? (
+              <DM_UI>
+                <MessagesContainer
+                  style={hasBeenFetched ? {} : { overflow: "hidden" }}
+                >
+                  {hasBeenFetched ? (
+                    haveMessages ? (
+                      messageHistory.map(({ author, message, timestamp }) => {
+                        return (
+                          <MessageBlock key={timestamp}>
+                            {author === auth.currentUser.uid ? (
+                              <span className="date">
+                                {formatDate(timestamp)}
+                              </span>
                             ) : (
                               ""
                             )}
-                          </Top>
-                          <LatestMsg>
-                            {dm.lastMessage
-                              ? !latestMsg
-                                ? dm.lastMessage.length >= 30
-                                  ? dm.lastMessage.slice(0, 30) + "..."
-                                  : dm.lastMessage
-                                : latestMsg.length >= 30
-                                ? latestMsg.slice(0, 30) + "..."
-                                : latestMsg
-                              : "Start this conversation now!"}
-                          </LatestMsg>
-                        </DMDescription>
-                      </DMBlock>
-                    </Link>
-                  );
-                })}
-              </DMsWrapper>
-            ) : (
-              ""
-            )}
 
-            {everythingFetched && dms.length ? (
-              isDesktop ? (
-                <DM_UI>
-                  <MessagesContainer
-                    style={hasBeenFetched ? {} : { overflow: "hidden" }}
-                  >
-                    {hasBeenFetched ? (
-                      haveMessages ? (
-                        messageHistory.map(({ author, message, timestamp }) => {
-                          return (
-                            <MessageBlock key={timestamp}>
-                              {author === auth.currentUser.uid ? (
-                                <span className="date">
-                                  {formatDate(timestamp)}
-                                </span>
+                            <div
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                              }}
+                            >
+                              {author !== auth.currentUser.uid ? (
+                                <Pfp
+                                  style={
+                                    opponentPfp
+                                      ? {
+                                          backgroundImage: `url(${opponentPfp})`,
+                                          backgroundSize: "cover",
+                                          backgroundRepeat: "no-repeat",
+                                          backgroundPosition: "center",
+                                        }
+                                      : {
+                                          backgroundColor: initials.opponent[2],
+                                        }
+                                  }
+                                >
+                                  {!opponentPfp ? (
+                                    <div>
+                                      <span>{initials.opponent[0]}</span>
+                                      <span>{initials.opponent[1]}</span>
+                                    </div>
+                                  ) : (
+                                    ""
+                                  )}
+                                </Pfp>
                               ) : (
                                 ""
                               )}
 
-                              <div
-                                style={{
-                                  display: "flex",
-                                  alignItems: "center",
-                                }}
+                              <MessageBlob
+                                opponent={
+                                  author === auth.currentUser.uid ? 0 : 1
+                                }
                               >
-                                {author !== auth.currentUser.uid ? (
-                                  <Pfp
-                                    style={
-                                      opponentPfp
-                                        ? {
-                                            backgroundImage: `url(${opponentPfp})`,
-                                            backgroundSize: "cover",
-                                            backgroundRepeat: "no-repeat",
-                                            backgroundPosition: "center",
-                                          }
-                                        : {
-                                            backgroundColor:
-                                              initials.opponent[2],
-                                          }
-                                    }
-                                  >
-                                    {!opponentPfp ? (
-                                      <div>
-                                        <span>{initials.opponent[0]}</span>
-                                        <span>{initials.opponent[1]}</span>
-                                      </div>
-                                    ) : (
-                                      ""
-                                    )}
-                                  </Pfp>
-                                ) : (
-                                  ""
-                                )}
+                                <p>{message}</p>
+                              </MessageBlob>
+                            </div>
+                            {author !== auth.currentUser.uid ? (
+                              <span className="date">
+                                {formatDate(timestamp)}
+                              </span>
+                            ) : (
+                              ""
+                            )}
+                          </MessageBlock>
+                        );
+                      })
+                    ) : (
+                      <StartConvo>
+                        Set roots for this exciting chatting right now!
+                      </StartConvo>
+                    )
+                  ) : (
+                    <StartConvo>Hold on, fetching data...</StartConvo>
+                  )}
+                  {messages.length
+                    ? bubbleSprings.map((styles, i) => {
+                        let { author, msg, timestamp, error } = messages[i];
+                        return (
+                          <MessageBlock key={i}>
+                            {author === auth.currentUser.uid ? (
+                              <span className="date">
+                                {formatDate(timestamp)}
+                              </span>
+                            ) : (
+                              ""
+                            )}
+                            <div
+                              style={{
+                                display: "flex",
+                                alignItems: "center",
+                              }}
+                            >
+                              {author !== auth.currentUser.uid ? (
+                                <Pfp
+                                  style={
+                                    opponentPfp
+                                      ? {
+                                          backgroundImage: `url(${opponentPfp})`,
+                                          backgroundSize: "cover",
+                                          backgroundRepeat: "no-repeat",
+                                          backgroundPosition: "center",
+                                        }
+                                      : {
+                                          backgroundColor: initials.opponent[2],
+                                        }
+                                  }
+                                >
+                                  {!opponentPfp ? (
+                                    <div>
+                                      <span>{initials.opponent[0]}</span>
+                                      <span>{initials.opponent[1]}</span>
+                                    </div>
+                                  ) : (
+                                    ""
+                                  )}
+                                </Pfp>
+                              ) : (
+                                ""
+                              )}
 
+                              <Blob>
                                 <MessageBlob
+                                  as={animated.div}
+                                  style={styles}
                                   opponent={
                                     author === auth.currentUser.uid ? 0 : 1
                                   }
                                 >
-                                  <p>{message}</p>
+                                  <p>{msg}</p>
                                 </MessageBlob>
-                              </div>
-                              {author !== auth.currentUser.uid ? (
-                                <span className="date">
-                                  {formatDate(timestamp)}
-                                </span>
-                              ) : (
-                                ""
-                              )}
-                            </MessageBlock>
-                          );
-                        })
-                      ) : (
-                        <StartConvo>
-                          Set roots for this exciting chatting right now!
-                        </StartConvo>
-                      )
-                    ) : (
-                      <StartConvo>Hold on, fetching data...</StartConvo>
-                    )}
-                    {messages.length
-                      ? bubbleSprings.map((styles, i) => {
-                          let { author, msg, timestamp, error } = messages[i];
-                          return (
-                            <MessageBlock key={i}>
-                              {author === auth.currentUser.uid ? (
-                                <span className="date">
-                                  {formatDate(timestamp)}
-                                </span>
-                              ) : (
-                                ""
-                              )}
-                              <div
-                                style={{
-                                  display: "flex",
-                                  alignItems: "center",
-                                }}
-                              >
-                                {author !== auth.currentUser.uid ? (
-                                  <Pfp
-                                    style={
-                                      opponentPfp
-                                        ? {
-                                            backgroundImage: `url(${opponentPfp})`,
-                                            backgroundSize: "cover",
-                                            backgroundRepeat: "no-repeat",
-                                            backgroundPosition: "center",
-                                          }
-                                        : {
-                                            backgroundColor:
-                                              initials.opponent[2],
-                                          }
-                                    }
-                                  >
-                                    {!opponentPfp ? (
-                                      <div>
-                                        <span>{initials.opponent[0]}</span>
-                                        <span>{initials.opponent[1]}</span>
-                                      </div>
-                                    ) : (
-                                      ""
-                                    )}
-                                  </Pfp>
+                                {error !== null ? (
+                                  <MsgError>
+                                    This message might not have been sent:{" "}
+                                    {error}
+                                  </MsgError>
                                 ) : (
                                   ""
                                 )}
-
-                                <Blob>
-                                  <MessageBlob
-                                    as={animated.div}
-                                    style={styles}
-                                    opponent={
-                                      author === auth.currentUser.uid ? 0 : 1
-                                    }
-                                  >
-                                    <p>{msg}</p>
-                                  </MessageBlob>
-                                  {error !== null ? (
-                                    <MsgError>
-                                      This message might not have been sent:{" "}
-                                      {error}
-                                    </MsgError>
-                                  ) : (
-                                    ""
-                                  )}
-                                </Blob>
-                              </div>
-                              {author !== auth.currentUser.uid ? (
-                                <span>{formatDate(timestamp)}</span>
-                              ) : (
-                                ""
-                              )}
-                            </MessageBlock>
-                          );
-                        })
-                      : ""}
-                    {currentUser ? (
-                      currentUser.typing ? (
-                        <Typing>
-                          <Pfp
-                            style={
-                              opponentPfp
-                                ? {
-                                    backgroundImage: `url(${opponentPfp})`,
-                                    backgroundSize: "cover",
-                                    backgroundRepeat: "no-repeat",
-                                    backgroundPosition: "center",
-                                  }
-                                : { backgroundColor: initials.opponent[2] }
-                            }
-                          >
-                            {!opponentPfp ? (
-                              <div>
-                                <span>{initials.opponent[0]}</span>
-                                <span>{initials.opponent[1]}</span>
-                              </div>
+                              </Blob>
+                            </div>
+                            {author !== auth.currentUser.uid ? (
+                              <span>{formatDate(timestamp)}</span>
                             ) : (
                               ""
                             )}
-                          </Pfp>
-                          <p>Typing...</p>
-                        </Typing>
-                      ) : (
-                        ""
-                      )
-                    ) : (
-                      ""
-                    )}
-                    <div
-                      style={{
-                        marginTop: "30px",
-                      }}
-                      key="custom"
-                      ref={bottomRef}
-                    />
-                  </MessagesContainer>
-                  {hasBeenFetched ? (
-                    <Overlap>
-                      <InputBlock>
-                        <TypeInput
-                          ref={typeInputRef}
-                          value={message}
-                          onChange={(e) => {
-                            let val = e.target.value;
-                            let state = false;
-
-                            if (val.length) {
-                              state = true;
-                            }
-
-                            socket.emit("typing", {
-                              roomName: roomName.current,
-                              author: auth.currentUser.uid,
-                              state,
-                            });
-
-                            setMessage(val);
-                          }}
-                          onKeyDown={(e) => {
-                            if (e.key === "Enter") {
-                              sendMessage(socket);
-
-                              socket.emit("typing", {
-                                roomName: roomName.current,
-                                author: auth.currentUser.uid,
-                                state: false,
-                              });
-                            }
-                          }}
-                          onKeyUp={() => {
-                            if (message.length) {
-                              api({
-                                to: {
-                                  display: "inline-block",
-                                  opacity: 1,
-                                  x: 0,
-                                },
-                              });
-                            }
-
-                            if (!message.length) {
-                              api({
-                                to: async (animate) => {
-                                  await animate({
-                                    opacity: 0,
-                                    x: -10,
-                                  });
-
-                                  await animate({
-                                    display: "none",
-                                  });
-                                },
-                              });
-                            }
-                          }}
-                          placeholder="Type your message..."
-                          onBlur={() => {
-                            socket.emit("typing", {
-                              roomName: roomName.current,
-                              author: auth.currentUser.uid,
-                              state: false,
-                            });
-                          }}
-                        />
-                        <SendIcon
-                          onClick={() => {
-                            sendMessage(socket);
-                          }}
-                          as={animated.div}
-                          style={planeStyles}
-                        >
-                          <FontAwesomeIcon icon={faPaperPlane} />
-                        </SendIcon>
-                      </InputBlock>
-                    </Overlap>
-                  ) : (
-                    ""
-                  )}
-                </DM_UI>
-              ) : (
-                ""
-              )
-            ) : (
-              ""
-            )}
-
-            {everythingFetched && !dms.length ? (
-              <NoDms>
-                <div className="innerContent">
-                  <p>
-                    You have no active conversations, you can start one right
-                    now.
-                  </p>
-
-                  <input
-                    type="text"
-                    value={search}
-                    onChange={async (e) => {
-                      let val = e.target.value;
-                      setSearch(val);
-
-                      if (val.length < 2) {
-                        setHits(null);
-                      } else {
-                        const searchHits = await index.search(val, {
-                          getRankingInfo: true,
-                          analytics: false,
-                          enableABTest: false,
-                          hitsPerPage: 3,
-                          attributesToRetrieve: "*",
-                          attributesToSnippet: "*:20",
-                          snippetEllipsisText: "…",
-                          responseFields: "*",
-                          explain: "*",
-                          page: 0,
-                          facets: ["*"],
-                        });
-
-                        let res = searchHits.hits.filter(
-                          (hit) => hit.email !== selfEmail.current
+                          </MessageBlock>
                         );
-
-                        setHits(res);
-                      }
-                    }}
-                    placeholder="Search a user..."
-                  />
-
-                  {hits ? (
-                    hits.length && search.length ? (
-                      <AutoComplete>
-                        {hits.map((hit, index) => {
-                          return (
-                            <div
-                              onClick={() => {
-                                dispatch({
-                                  type: "REQUEST_NEW_DM",
-                                  payload: hit.email,
-                                });
-                                setSearch("");
-                              }}
-                              key={index}
-                            >
-                              <p className="name">{hit.name}</p>
-                              <p className="email">{hit.email}</p>
+                      })
+                    : ""}
+                  {currentUser ? (
+                    currentUser.typing ? (
+                      <Typing>
+                        <Pfp
+                          style={
+                            opponentPfp
+                              ? {
+                                  backgroundImage: `url(${opponentPfp})`,
+                                  backgroundSize: "cover",
+                                  backgroundRepeat: "no-repeat",
+                                  backgroundPosition: "center",
+                                }
+                              : { backgroundColor: initials.opponent[2] }
+                          }
+                        >
+                          {!opponentPfp ? (
+                            <div>
+                              <span>{initials.opponent[0]}</span>
+                              <span>{initials.opponent[1]}</span>
                             </div>
-                          );
-                        })}
-                      </AutoComplete>
+                          ) : (
+                            ""
+                          )}
+                        </Pfp>
+                        <p>Typing...</p>
+                      </Typing>
                     ) : (
                       ""
                     )
                   ) : (
                     ""
                   )}
-                </div>
-              </NoDms>
+                  <div
+                    style={{
+                      marginTop: "30px",
+                    }}
+                    key="custom"
+                    ref={bottomRef}
+                  />
+                </MessagesContainer>
+                {hasBeenFetched ? (
+                  <Overlap>
+                    <InputBlock>
+                      <TypeInput
+                        ref={typeInputRef}
+                        value={message}
+                        onChange={(e) => {
+                          let val = e.target.value;
+                          let state = false;
+
+                          if (val.length) {
+                            state = true;
+                          }
+
+                          socket.emit("typing", {
+                            roomName: roomName.current,
+                            author: auth.currentUser.uid,
+                            state,
+                          });
+
+                          setMessage(val);
+                        }}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            sendMessage(socket);
+
+                            socket.emit("typing", {
+                              roomName: roomName.current,
+                              author: auth.currentUser.uid,
+                              state: false,
+                            });
+                          }
+                        }}
+                        onKeyUp={() => {
+                          if (message.length) {
+                            api({
+                              to: {
+                                display: "inline-block",
+                                opacity: 1,
+                                x: 0,
+                              },
+                            });
+                          }
+
+                          if (!message.length) {
+                            api({
+                              to: async (animate) => {
+                                await animate({
+                                  opacity: 0,
+                                  x: -10,
+                                });
+
+                                await animate({
+                                  display: "none",
+                                });
+                              },
+                            });
+                          }
+                        }}
+                        placeholder="Type your message..."
+                        onBlur={() => {
+                          socket.emit("typing", {
+                            roomName: roomName.current,
+                            author: auth.currentUser.uid,
+                            state: false,
+                          });
+                        }}
+                      />
+                      <SendIcon
+                        onClick={() => {
+                          sendMessage(socket);
+                        }}
+                        as={animated.div}
+                        style={planeStyles}
+                      >
+                        <FontAwesomeIcon icon={faPaperPlane} />
+                      </SendIcon>
+                    </InputBlock>
+                  </Overlap>
+                ) : (
+                  ""
+                )}
+              </DM_UI>
             ) : (
               ""
-            )}
-          </Container>
-        </Wrapper>
-      )}
+            )
+          ) : (
+            ""
+          )}
+
+          {everythingFetched && !dms.length ? (
+            <NoDms>
+              <div className="innerContent">
+                <p>
+                  You have no active conversations, you can start one right now.
+                </p>
+
+                <input
+                  type="text"
+                  value={search}
+                  onChange={async (e) => {
+                    let val = e.target.value;
+                    setSearch(val);
+
+                    if (val.length < 2) {
+                      setHits(null);
+                    } else {
+                      const searchHits = await index.search(val, {
+                        getRankingInfo: true,
+                        analytics: false,
+                        enableABTest: false,
+                        hitsPerPage: 3,
+                        attributesToRetrieve: "*",
+                        attributesToSnippet: "*:20",
+                        snippetEllipsisText: "…",
+                        responseFields: "*",
+                        explain: "*",
+                        page: 0,
+                        facets: ["*"],
+                      });
+
+                      let res = searchHits.hits.filter(
+                        (hit) => hit.email !== selfEmail.current
+                      );
+
+                      setHits(res);
+                    }
+                  }}
+                  placeholder="Search a user..."
+                />
+
+                {hits ? (
+                  hits.length && search.length ? (
+                    <AutoComplete>
+                      {hits.map((hit, index) => {
+                        return (
+                          <div
+                            onClick={() => {
+                              dispatch({
+                                type: "REQUEST_NEW_DM",
+                                payload: hit.email,
+                              });
+                              setSearch("");
+                            }}
+                            key={index}
+                          >
+                            <p className="name">{hit.name}</p>
+                            <p className="email">{hit.email}</p>
+                          </div>
+                        );
+                      })}
+                    </AutoComplete>
+                  ) : (
+                    ""
+                  )
+                ) : (
+                  ""
+                )}
+              </div>
+            </NoDms>
+          ) : (
+            ""
+          )}
+        </Container>
+      </Wrapper>
     </div>
   );
 }
