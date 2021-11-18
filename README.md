@@ -9,7 +9,7 @@ The backend of the application was mainly handled by Google Firebase SDK and use
   - **firebase functions**
   
 ## Web sockets
-As for realtime data streaming I used technology called Websockets that are handled on the nodejs express server deployed on heroku.
+As for realtime data streaming, I used technology called Websockets that are handled on the nodejs express server deployed on heroku.
 Web sockets allow to implement things such as:
   - "User is typing" indication
   - Showing unread messages
