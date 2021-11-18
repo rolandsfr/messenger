@@ -1,5 +1,5 @@
 # messenger
-Firebase messenger app built on React, redux and with websocket handling
+Firebase messenger app built with React, Redux and websockets
 
 ## Firebase side of things
 The backend of the application was mainly handled by Google Firebase SDK and used it's features like:
@@ -15,7 +15,10 @@ Web sockets allow to implement things such as:
   - Showing unread messages
   - Showing messages in real time
   - Joining and leaving "rooms"  
-</br>
+
+## Redux side of things
+Redux was my go-to when I realized I needed to persist data between different pages/screens.  
+For the asynchrounous action creators I used Redux-Saga which uses generator functions.
 
 ## License
-[CC BY-NC-ND 4.0](https://creativecommons.org/licenses/by-nc-nd/4.0/legalcode)
+[MIT](https://choosealicense.com/licenses/mit/)
